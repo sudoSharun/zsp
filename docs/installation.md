@@ -1,12 +1,25 @@
 # Installation
 
-`zsp` ships two ways:
+> ## Available today
+>
+> Until the first release is tagged, install from source:
+>
+> ```bash
+> pipx install git+https://github.com/sudoSharun/zsp
+> ```
+>
+> Everything else on this page — PyPI, Homebrew, Chocolatey, winget, npm,
+> Docker, prebuilt binaries — becomes available with release `v0.1.0`. The
+> instructions are documented here so the packaging is reviewable, but they
+> will not work yet.
+
+`zsp` will ship two ways:
 
 - **From PyPI** — needs Python 3.9+, gets you the library too.
 - **As a standalone binary** — no Python required; what Homebrew,
   Chocolatey, winget and npm install.
 
-Pick whichever suits the machine. They are the same program.
+Both are the same program; pick whichever suits the machine.
 
 ---
 
@@ -18,31 +31,36 @@ Installs into its own environment so it never collides with a project's
 dependencies:
 
 ```bash
-pipx install zsp
+pipx install git+https://github.com/sudoSharun/zsp   # available now
+pipx install zsp                                      # after v0.1.0
 ```
 
 ### uv
 
 ```bash
-uv tool install zsp
+uv tool install git+https://github.com/sudoSharun/zsp   # available now
+uv tool install zsp                                     # after v0.1.0
 ```
 
 ### pip
 
 ```bash
-pip install zsp
+pip install git+https://github.com/sudoSharun/zsp   # available now
+pip install zsp                                      # after v0.1.0
 ```
 
 ### One-off, no install
 
 ```bash
-pipx run zsp items
-uvx zsp items
+pipx run zsp items      # after v0.1.0
+uvx zsp items           # after v0.1.0
 ```
 
 ---
 
 ## macOS / Linux
+
+_All methods in this section require release `v0.1.0`._
 
 ### Homebrew
 
@@ -84,6 +102,8 @@ sudo mv zsp /usr/local/bin/
 
 ## Windows
 
+_All methods in this section require release `v0.1.0`._
+
 ### winget
 
 ```powershell
@@ -113,6 +133,8 @@ extract, and add the folder to `PATH`.
 
 ## Node / npm
 
+_Requires release `v0.1.0`._
+
 ```bash
 npm install -g zsp
 ```
@@ -124,6 +146,8 @@ npm-based; if you have Python, `pipx` is the more direct route.
 ---
 
 ## Docker
+
+_Requires release `v0.1.0`._
 
 ```bash
 docker run --rm -it \
@@ -143,6 +167,8 @@ alias zsp='docker run --rm -it -v "$HOME/.config/zsp:/root/.config/zsp" ghcr.io/
 ---
 
 ## From source
+
+_Works today._
 
 ```bash
 git clone https://github.com/sudoSharun/zsp

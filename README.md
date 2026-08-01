@@ -37,18 +37,30 @@ will save you a day.
 
 ## Install
 
-```bash
-pip install zsp
-```
-
-Or with [pipx](https://pipx.pypa.io/), to keep it out of your project
-environments:
+Requires Python 3.9+. No other dependencies.
 
 ```bash
-pipx install zsp
+pipx install git+https://github.com/sudoSharun/zsp
 ```
 
-Python 3.9+.
+[pipx](https://pipx.pypa.io/) keeps it in its own environment, out of the
+way of your projects. Plain pip works too:
+
+```bash
+pip install git+https://github.com/sudoSharun/zsp
+```
+
+> **Not yet on PyPI.** `pip install zsp` will not work until the first
+> release is published — use the commands above meanwhile. Homebrew,
+> Chocolatey, winget, npm and the prebuilt binaries described in
+> [`docs/installation.md`](docs/installation.md) also become available with
+> that release.
+
+Upgrade:
+
+```bash
+pipx upgrade zsp        # or: pipx reinstall zsp
+```
 
 ## Quickstart
 
