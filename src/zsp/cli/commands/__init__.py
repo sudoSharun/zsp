@@ -11,6 +11,7 @@ from .read import (
     ProjectsCommand,
     SprintsCommand,
     StandupCommand,
+    StatusesCommand,
     TeamsCommand,
 )
 from .session import ConfigCommand, LoginCommand, LogoutCommand, UseCommand
@@ -35,6 +36,7 @@ COMMANDS = (
     SprintsCommand,
     ItemsCommand,
     ItemCommand,
+    StatusesCommand,
     StandupCommand,
     CommentsCommand,
     # writes

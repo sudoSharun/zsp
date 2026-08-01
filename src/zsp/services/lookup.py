@@ -12,11 +12,33 @@ from .base import BaseService
 class LookupService(BaseService):
     """Name → id resolution for statuses, item types, priorities and users."""
 
+    COLUMNS = ("id", "name", "kind")
+
+    def status_rows(self, project=None):
+        """Every status configured on the project, used or not.
+
+        Reading statuses off the items in a sprint only reveals the ones
+        currently in use — an empty column on the board would be missed.
+        This endpoint returns the full workflow.
+        """
+        _, project, _ = self.scope(project, need_sprint=False)
+        response = self.client.fetch(
+            self.project_path(project, "itemstatus"),
+            action="data", index=1, range=50)
+        rows = response.rows("statusJObj", "status_prop",
+                             {"name": "statusName", "type": "statusType"})
+        for row in rows:
+            row["kind"] = self.STATUS_KINDS.get(row.pop("type"), "")
+        return rows
+
+    #: statusType, as used by Zoho's board columns.
+    STATUS_KINDS = {0: "open", 1: "closed", 2: "in progress"}
+
     def statuses(self, project):
         """``{status id: label}`` — e.g. ``To do``, ``In progress``, ``Done``."""
         response = self.client.fetch(
             self.project_path(project, "itemstatus"),
-            action="data", index=1, range=25)
+            action="data", index=1, range=50)
         rows = response.rows("statusJObj", "status_prop", {"name": "statusName"})
         return {row["id"]: row["name"] for row in rows}
 

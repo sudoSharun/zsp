@@ -109,6 +109,7 @@ zsp standup --days 7
 | `zsp teams` | List workspaces |
 | `zsp projects` | List projects |
 | `zsp sprints` | List sprints in a project |
+| `zsp statuses` | List the statuses `--status` accepts |
 | `zsp items [--mine NAME]` | List items in a sprint |
 | `zsp item ID` | Show one item in full |
 | `zsp standup [--days N]` | Recent time logs |

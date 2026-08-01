@@ -18,6 +18,7 @@ All ids below are fabricated. Yours will be 19-digit numbers from
 [teams](#zsp-teams) ·
 [projects](#zsp-projects) ·
 [sprints](#zsp-sprints) ·
+[statuses](#zsp-statuses) ·
 [items](#zsp-items) ·
 [item](#zsp-item) ·
 [standup](#zsp-standup) ·
@@ -166,6 +167,32 @@ $ zsp sprints
 > Dates are UTC. A portal set to IST stores local midnight as `18:30Z` the
 > previous day, so a sprint starting 1 January reads `2025-12-31T18:30Z`.
 > The web UI shows it correctly.
+
+### `zsp statuses`
+
+What `--status` will accept for a project — the full configured workflow,
+including columns with nothing in them.
+
+```console
+$ zsp statuses --project 20000000000000002
+ID                 NAME         KIND
+70000000000000007  To do        open
+70000000000000008  In progress  in progress
+70000000000000010  InReview     in progress
+70000000000000011  INQA         in progress
+70000000000000009  Done         closed
+```
+
+Reading statuses off the items in a sprint is not equivalent: an empty
+board column has no items, so it would be missed entirely.
+
+`--type` and `--priority` values are not listed by a command, but an
+unknown value reports the valid ones:
+
+```console
+$ zsp create --title x --type Epic
+error: Unknown item type 'Epic'. Valid: Bug, Story, Task
+```
 
 ### `zsp items`
 

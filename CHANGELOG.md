@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `zsp statuses` lists every status configured on a project, including
+  board columns with no items in them.
+
 ### Fixed
 
 - Comments, descriptions and time-log notes are HTML fields in Zoho, so

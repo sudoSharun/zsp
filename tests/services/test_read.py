@@ -158,3 +158,31 @@ class TestComments:
         url = opener.urls[0]
         assert f"/sprints/{SPRINT}/item/{ITEM}/notes/" in url
         assert "/modules/" not in url
+
+
+class TestStatusList:
+    """Regression: statuses were being inferred from items in use, so a
+    configured-but-empty board column was invisible."""
+
+    def test_lists_every_configured_status(self, services, opener):
+        opener.payloads.append(STATUS_RESPONSE)
+        rows = services["lookups"].status_rows(PROJECT)
+
+        assert [r["name"] for r in rows] == ["To do", "In progress", "Done"]
+
+    def test_labels_the_status_kind(self, services, opener):
+        opener.payloads.append(STATUS_RESPONSE)
+        by_name = {r["name"]: r["kind"] for r in services["lookups"].status_rows(PROJECT)}
+
+        assert by_name["To do"] == "open"
+        assert by_name["Done"] == "closed"
+        assert by_name["In progress"] == "in progress"
+
+    def test_hits_the_itemstatus_endpoint(self, services, opener):
+        opener.payloads.append(STATUS_RESPONSE)
+        services["lookups"].status_rows(PROJECT)
+        assert "/itemstatus/" in opener.urls[0]
+
+    def test_requires_a_project(self, services):
+        with pytest.raises(UsageError):
+            services["lookups"].status_rows()

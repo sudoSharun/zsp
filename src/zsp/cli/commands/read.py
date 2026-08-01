@@ -34,6 +34,19 @@ class SprintsCommand(Command):
         self.show(service, service.list(args.project))
 
 
+class StatusesCommand(Command):
+    """What `--status` will accept for a project."""
+
+    name = "statuses"
+    help = "list the statuses configured on a project"
+    scoped = True
+    needs_sprint = False
+
+    def execute(self, args):
+        service = self.app.lookups
+        self.show(service, service.status_rows(args.project))
+
+
 class ItemsCommand(Command):
     name = "items"
     help = "list items in a sprint"
