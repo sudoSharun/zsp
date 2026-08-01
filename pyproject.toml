@@ -1,0 +1,82 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "zsp"
+dynamic = ["version"]
+description = "Command-line client for Zoho Sprints — projects, sprints, items, time logs and comments from your terminal."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+authors = [{ name = "Sharan K", email = "you@example.com" }]
+keywords = ["zoho", "sprints", "cli", "agile", "scrum", "project-management", "timesheet"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development",
+    "Topic :: Utilities",
+]
+# No runtime dependencies. This is deliberate — the whole client is stdlib.
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.4",
+    "build>=1.0",
+    "twine>=5.0",
+]
+
+[project.scripts]
+zsp = "zsp.cli.interface:main"
+
+[project.urls]
+Homepage = "https://github.com/sudoSharun/zsp"
+Documentation = "https://github.com/sudoSharun/zsp/tree/main/docs"
+Repository = "https://github.com/sudoSharun/zsp"
+Issues = "https://github.com/sudoSharun/zsp/issues"
+Changelog = "https://github.com/sudoSharun/zsp/blob/main/CHANGELOG.md"
+
+[tool.hatch.version]
+path = "src/zsp/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/zsp"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --cov=zsp --cov-report=term-missing --cov-fail-under=90"
+
+[tool.coverage.run]
+branch = true
+source = ["zsp"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Chocolatey package for zsp.
+
+  Ships the standalone Windows binary from GitHub Releases — Chocolatey
+  users are not assumed to have Python.
+
+  Build and push:
+    choco pack packaging/chocolatey/zsp.nuspec
+    choco push zsp.0.1.0.nupkg --source https://push.chocolatey.org/
+-->
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>zsp</id>
+    <version>0.1.0</version>
+    <packageSourceUrl>https://github.com/sudoSharun/zsp/tree/main/packaging/chocolatey</packageSourceUrl>
+    <owners>sudoSharun</owners>
+
+    <title>zsp — Zoho Sprints CLI</title>
+    <authors>Sharan K</authors>
+    <projectUrl>https://github.com/sudoSharun/zsp</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/sudoSharun/zsp/main/docs/icon.png</iconUrl>
+    <copyright>2026 Sharan K</copyright>
+    <licenseUrl>https://github.com/sudoSharun/zsp/blob/main/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <projectSourceUrl>https://github.com/sudoSharun/zsp</projectSourceUrl>
+    <docsUrl>https://github.com/sudoSharun/zsp/tree/main/docs</docsUrl>
+    <bugTrackerUrl>https://github.com/sudoSharun/zsp/issues</bugTrackerUrl>
+    <tags>zoho sprints cli agile scrum project-management timesheet</tags>
+
+    <summary>Drive Zoho Sprints from the command line.</summary>
+    <description><![CDATA[
+List sprints, create and update work items, log time and post comments in
+[Zoho Sprints](https://www.zoho.com/sprints/) without opening the web UI.
+
+### Highlights
+
+* Every command supports `--json`, so it scripts cleanly
+* Every write supports `--dry-run`, which prints the request and sends nothing
+* Human names instead of 19-digit ids: `--status Done`, `--assignee ada`
+* Ships as a standalone binary — no Python installation required
+
+### Getting started
+
+    zsp login
+    zsp projects
+    zsp use <project-id> <sprint-id>
+    zsp items
+
+Full documentation: https://github.com/sudoSharun/zsp
+
+Not affiliated with or endorsed by Zoho Corporation.
+]]></description>
+    <releaseNotes>https://github.com/sudoSharun/zsp/blob/main/CHANGELOG.md</releaseNotes>
+  </metadata>
+
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>

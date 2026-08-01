@@ -1,0 +1,14 @@
+# winget manifest (version file).
+#
+# Submit all three manifest files to microsoft/winget-pkgs under
+# manifests/y/sudoSharun/zsp/0.1.0/
+#
+# Validate before submitting:
+#   winget validate --manifest packaging/winget
+#   winget install --manifest packaging/winget
+
+PackageIdentifier: sudoSharun.zsp
+PackageVersion: 0.1.0
+DefaultLocale: en-US
+ManifestType: version
+ManifestVersion: 1.6.0

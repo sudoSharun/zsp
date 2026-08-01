@@ -1,0 +1,9 @@
+# zsp has NO runtime dependencies — everything it needs is in the Python
+# standard library (urllib, argparse, http.server, json, datetime).
+#
+# This file exists so the answer to "what does this pull in?" is explicit.
+# To install the tool itself:
+#
+#     pip install zsp
+#
+# For development dependencies see requirements-dev.txt.

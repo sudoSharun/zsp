@@ -1,0 +1,34 @@
+# Credentials — zsp stores these in ~/.config/zsp/, never in the repo.
+# Listed anyway so a stray copy can never be committed.
+config.json
+*.pem
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Tooling
+.ruff_cache/
+.mypy_cache/
+
+# Tool state
+.claude/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store

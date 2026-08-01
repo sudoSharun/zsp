@@ -1,0 +1,166 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to build (without the leading v)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  # ---------------------------------------------------------------- binaries
+  binaries:
+    name: Build ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-14,      target: macos-arm64,   ext: tar.gz }
+          - { os: macos-13,      target: macos-x64,     ext: tar.gz }
+          - { os: ubuntu-latest, target: linux-x64,     ext: tar.gz }
+          - { os: ubuntu-24.04-arm, target: linux-arm64, ext: tar.gz }
+          - { os: windows-latest, target: windows-x64,  ext: zip }
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tooling
+        run: |
+          pip install -e .
+          pip install pyinstaller
+
+      - name: Resolve version
+        id: version
+        shell: bash
+        run: |
+          version="${{ github.event.inputs.version }}"
+          [ -n "$version" ] || version="${GITHUB_REF_NAME#v}"
+          echo "value=$version" >> "$GITHUB_OUTPUT"
+
+      # A single self-contained executable so Homebrew, Chocolatey, winget
+      # and npm can install without Python on the target machine.
+      - name: Build binary
+        run: >
+          pyinstaller --onefile --name zsp
+          --console
+          --collect-submodules zsp
+          src/zsp/__main__.py
+
+      - name: Verify the binary runs
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            ./dist/zsp.exe --version
+          else
+            ./dist/zsp --version
+          fi
+
+      - name: Package (unix)
+        if: matrix.ext == 'tar.gz'
+        run: tar -czf "zsp-${{ steps.version.outputs.value }}-${{ matrix.target }}.tar.gz" -C dist zsp
+
+      - name: Package (windows)
+        if: matrix.ext == 'zip'
+        run: Compress-Archive -Path dist/zsp.exe -DestinationPath "zsp-${{ steps.version.outputs.value }}-${{ matrix.target }}.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.target }}
+          path: zsp-*.${{ matrix.ext }}
+
+  # ------------------------------------------------------------------ github
+  publish-github:
+    needs: binaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: binary-*
+          merge-multiple: true
+          path: artifacts
+
+      - name: Generate checksums
+        working-directory: artifacts
+        run: sha256sum zsp-* > checksums.txt
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/zsp-*
+            artifacts/checksums.txt
+          generate_release_notes: true
+
+  # -------------------------------------------------------------------- pypi
+  publish-pypi:
+    needs: binaries
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      id-token: write        # trusted publishing — no API token stored
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build
+      - run: python -m build
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  # --------------------------------------------------------------- container
+  publish-image:
+    needs: binaries
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/zsp:latest
+            ghcr.io/${{ github.repository_owner }}/zsp:${{ github.ref_name }}
+
+  # ------------------------------------------------------ downstream manifests
+  checksums:
+    name: Print manifest checksums
+    needs: publish-github
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: binary-*
+          merge-multiple: true
+          path: artifacts
+
+      # Homebrew, Chocolatey and winget manifests each embed a hash. They
+      # live in separate repositories, so this prints what to paste rather
+      # than trying to push on your behalf.
+      - name: Values to update downstream
+        working-directory: artifacts
+        run: |
+          echo "## Update these before publishing package manifests" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          sha256sum zsp-* >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "- homebrew tap: Formula/zsp.rb  → sha256 (PyPI sdist)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- chocolatey: tools/chocolateyinstall.ps1 → checksum64 (windows zip)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- winget: *.installer.yaml → InstallerSha256 (windows zip)" >> "$GITHUB_STEP_SUMMARY"

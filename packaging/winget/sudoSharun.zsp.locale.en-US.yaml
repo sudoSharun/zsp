@@ -1,0 +1,38 @@
+PackageIdentifier: sudoSharun.zsp
+PackageVersion: 0.1.0
+PackageLocale: en-US
+Publisher: Sharan K
+PublisherUrl: https://github.com/sudoSharun
+PublisherSupportUrl: https://github.com/sudoSharun/zsp/issues
+PackageName: zsp
+PackageUrl: https://github.com/sudoSharun/zsp
+License: MIT
+LicenseUrl: https://github.com/sudoSharun/zsp/blob/main/LICENSE
+Copyright: Copyright (c) 2026 Sharan K
+ShortDescription: Command-line client for Zoho Sprints.
+Description: |-
+  Drive Zoho Sprints from your terminal: list sprints, create and update work
+  items, log time and post comments without opening the web UI.
+
+  Every command supports --json for scripting, and every write supports
+  --dry-run, which prints the request and sends nothing. Human-readable names
+  are accepted instead of 19-digit ids.
+
+  Ships as a self-contained binary; no Python installation required.
+
+  Not affiliated with or endorsed by Zoho Corporation.
+Moniker: zsp
+Tags:
+- cli
+- zoho
+- sprints
+- agile
+- scrum
+- project-management
+- timesheet
+ReleaseNotesUrl: https://github.com/sudoSharun/zsp/blob/main/CHANGELOG.md
+Documentations:
+- DocumentLabel: Documentation
+  DocumentUrl: https://github.com/sudoSharun/zsp/tree/main/docs
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

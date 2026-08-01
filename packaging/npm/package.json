@@ -1,0 +1,45 @@
+{
+  "name": "zsp",
+  "version": "0.1.0",
+  "description": "Command-line client for Zoho Sprints — sprints, work items, time logs and comments from your terminal.",
+  "keywords": [
+    "zoho",
+    "sprints",
+    "cli",
+    "agile",
+    "scrum",
+    "project-management",
+    "timesheet"
+  ],
+  "homepage": "https://github.com/sudoSharun/zsp",
+  "bugs": "https://github.com/sudoSharun/zsp/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sudoSharun/zsp.git"
+  },
+  "license": "MIT",
+  "author": "Sharan K",
+  "bin": {
+    "zsp": "bin/zsp.js"
+  },
+  "files": [
+    "bin/",
+    "scripts/",
+    "README.md"
+  ],
+  "scripts": {
+    "postinstall": "node scripts/postinstall.js"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ]
+}
