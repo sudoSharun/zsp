@@ -100,6 +100,22 @@ ZSP_CONFIG_DIR=~/.config/zsp-work zsp items
 Never commit this file. It is not repo-relative, and `config.json` is in
 `.gitignore` regardless.
 
+### File permissions
+
+On macOS and Linux the file is written with mode `0600` — readable only by
+you.
+
+Windows has no POSIX modes; `chmod` there only toggles the read-only bit,
+which would leave credentials readable by every account on the machine.
+`zsp` therefore applies an explicit ACL via `icacls`, removing inherited
+permissions and granting only the current user. That call is best effort:
+if `icacls` is unavailable it is skipped rather than blocking login, so on
+a locked-down or unusual Windows setup, verify with:
+
+```powershell
+icacls $env:USERPROFILE\.config\zsp\config.json
+```
+
 ## Token lifetime
 
 Access tokens last about an hour and are cached on disk. The refresh token

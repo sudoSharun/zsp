@@ -3,6 +3,7 @@
 import json
 import os
 import stat
+import sys
 
 import pytest
 
@@ -76,12 +77,41 @@ class TestConfigStore:
         store.save(config)
         assert store.load().client_id == config.client_id
 
+    @pytest.mark.skipif(sys.platform == "win32",
+                        reason="POSIX modes are not implemented on Windows; "
+                               "an ACL is applied there instead")
     def test_saved_file_is_owner_only(self, tmp_path, config):
         """Credentials must never be group- or world-readable."""
         store = ConfigStore(str(tmp_path))
         store.save(config)
         mode = stat.S_IMODE(os.stat(store.path).st_mode)
         assert mode == 0o600
+
+    @pytest.mark.skipif(sys.platform != "win32", reason="Windows-only path")
+    def test_windows_applies_an_acl(self, tmp_path, config, monkeypatch):
+        """chmod alone leaves the file readable by every account, so the
+        Windows path must fall through to icacls."""
+        calls = []
+        monkeypatch.setattr(
+            "zsp.core.config.subprocess.run",
+            lambda *args, **kwargs: calls.append(args[0]))
+
+        ConfigStore(str(tmp_path)).save(config)
+
+        assert calls, "expected an icacls invocation on Windows"
+        assert calls[0][0] == "icacls"
+        assert "/inheritance:r" in calls[0]
+
+    def test_a_failed_acl_does_not_break_login(self, tmp_path, config, monkeypatch):
+        """Hardening is best effort — it must never prevent saving."""
+        def explode(*args, **kwargs):
+            raise OSError("icacls missing")
+
+        monkeypatch.setattr("zsp.core.config.subprocess.run", explode)
+
+        store = ConfigStore(str(tmp_path))
+        store.save(config)
+        assert store.load().client_id == config.client_id
 
     def test_save_creates_the_directory(self, tmp_path, config):
         store = ConfigStore(str(tmp_path / "nested" / "deeper"))

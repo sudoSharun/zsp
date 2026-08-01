@@ -4,9 +4,13 @@ Credentials and persistence are deliberately separate — :class:`Config`
 knows nothing about disks, :class:`ConfigStore` knows nothing about OAuth.
 """
 
+import contextlib
+import getpass
 import json
 import os
 import stat
+import subprocess
+import sys
 
 from .errors import AuthError, UsageError
 
@@ -105,8 +109,31 @@ class ConfigStore:
         os.makedirs(self.directory, exist_ok=True)
         with open(self.path, "w") as handle:
             json.dump(config.to_dict(), handle, indent=2)
-        os.chmod(self.path, stat.S_IRUSR | stat.S_IWUSR)
+        self._restrict(self.path)
         return config
+
+    @staticmethod
+    def _restrict(path):
+        """Make the file readable only by its owner.
+
+        ``chmod`` is a no-op on Windows — it toggles the read-only bit and
+        nothing more — so POSIX modes leave credentials readable by every
+        account on the machine. Windows needs an explicit ACL instead.
+        """
+        os.chmod(path, stat.S_IRUSR | stat.S_IWUSR)
+
+        if sys.platform != "win32":
+            return
+
+        # Best effort: a failure here must not stop someone logging in.
+        # docs/authentication.md records the residual exposure.
+        with contextlib.suppress(OSError, subprocess.SubprocessError):
+            subprocess.run(
+                ["icacls", path,
+                 "/inheritance:r",                       # drop inherited ACEs
+                 "/grant:r", f"{getpass.getuser()}:F"],  # owner only
+                check=True, capture_output=True, timeout=10,
+            )
 
     def delete(self):
         """Remove stored credentials. True if there were any."""
