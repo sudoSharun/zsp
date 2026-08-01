@@ -2,8 +2,32 @@
 
 Every command accepts `--json`. Every write accepts `--dry-run`.
 
-Ids are 19-digit numbers. Run `zsp use` once and you can omit
-`--project`/`--sprint` everywhere after that.
+All ids below are fabricated. Yours will be 19-digit numbers from
+`zsp projects` and `zsp sprints`.
+
+> **`--project` and `--sprint` take ids, not names.** Unlike `--assignee`,
+> `--status`, `--type` and `--priority`, which accept human names, these two
+> currently require the numeric id. Run [`zsp use`](#zsp-use) once and you
+> can omit them entirely.
+
+**Contents** —
+[login](#zsp-login) ·
+[logout](#zsp-logout) ·
+[use](#zsp-use) ·
+[config](#zsp-config) ·
+[teams](#zsp-teams) ·
+[projects](#zsp-projects) ·
+[sprints](#zsp-sprints) ·
+[items](#zsp-items) ·
+[item](#zsp-item) ·
+[standup](#zsp-standup) ·
+[comments](#zsp-comments) ·
+[create](#zsp-create) ·
+[update](#zsp-update) ·
+[log](#zsp-log) ·
+[comment](#zsp-comment) ·
+[uncomment](#zsp-uncomment) ·
+[rm](#zsp-rm)
 
 ---
 
@@ -11,16 +35,39 @@ Ids are 19-digit numbers. Run `zsp use` once and you can omit
 
 ### `zsp login`
 
-Interactive: prompts for client ID, client secret and data centre, then
-opens a browser for consent. See [authentication.md](authentication.md).
+Interactive. Prompts for credentials, then opens a browser for consent.
+
+```console
+$ zsp login
+Client ID: 1000.ABCD1234EFGH5678IJKL
+Client Secret: ••••••••••••••••••••
+Data center [in/com/eu/com.au/jp] (default: in): in
+Opening browser for login...
+https://accounts.zoho.in/oauth/v2/auth?scope=ZohoSprints.teams.READ%2C...
+Logged in. Try: zsp projects
+```
+
+Setup walkthrough: [authentication.md](authentication.md).
 
 ### `zsp logout`
 
-Deletes `~/.config/zsp/config.json`. Does not revoke the client itself.
+Deletes `~/.config/zsp/config.json`. Does not revoke the OAuth client
+itself — do that in the API console.
 
-### `zsp use PROJECT [SPRINT]`
+```console
+$ zsp logout
+Logged out.
+```
 
-Saves defaults.
+```console
+$ zsp logout          # when there was nothing to remove
+Not logged in.
+```
+
+### `zsp use`
+
+Saves a default project, and optionally a sprint, so other commands need no
+ids.
 
 ```console
 $ zsp use 20000000000000002 30000000000000003
@@ -28,17 +75,35 @@ Default project: 20000000000000002
 Default sprint:  30000000000000003
 ```
 
+Project only — useful when you mostly work across sprints:
+
+```console
+$ zsp use 20000000000000002
+Default project: 20000000000000002
+```
+
+Afterwards:
+
+```console
+$ zsp items           # no --project or --sprint needed
+```
+
 ### `zsp config`
 
-Prints the active configuration with secrets masked.
+Shows the active configuration. Secrets are masked, so this is safe to
+paste into a bug report.
 
 ```console
 $ zsp config
-client_id: 1000.ABCD1234
+client_id: 1000.ABCD1234EFGH5678IJKL
 client_secret: ***redacted***
 refresh_token: ***redacted***
 dc: in
+access_token: ***redacted***
+access_token_expiry: 1785600000
+team_id: 10000000000000001
 default_project: 20000000000000002
+default_sprint: 30000000000000003
 ```
 
 ---
@@ -47,169 +112,363 @@ default_project: 20000000000000002
 
 ### `zsp teams`
 
+Workspaces on the account. The first is used automatically unless
+`team_id` is set in the config.
+
 ```console
 $ zsp teams
 ID                 NAME
 10000000000000001  acme
 ```
 
-The first workspace is used automatically; set `team_id` in the config file
-to pin a different one.
+```console
+$ zsp teams --json
+[
+  {
+    "id": "10000000000000001",
+    "name": "acme"
+  }
+]
+```
 
 ### `zsp projects`
 
 ```console
 $ zsp projects
-ID                 NAME    START                     END                       STATUS
-20000000000000002  Apollo  2026-01-01T00:00:00.000Z  2026-06-30T00:00:00.000Z  1
+ID                 NAME           START                     END                       STATUS
+20000000000000002  Apollo         2026-01-01T00:00:00.000Z  2026-06-30T00:00:00.000Z  1
+20000000000000007  Internal Bugs                                                      1
 ```
 
-`status` is a raw numeric code — Zoho does not expose labels for it.
+`status` is a raw numeric code — Zoho exposes no label for it. Blank dates
+mean the project has none set.
 
-### `zsp sprints [--project ID]`
+```bash
+# Just the ids and names
+zsp projects --json | jq -r '.[] | "\(.id)  \(.name)"'
+```
+
+### `zsp sprints`
+
+```console
+$ zsp sprints --project 20000000000000002
+ID                 NAME      START                     END                       DURATION
+30000000000000003  Sprint 1  2026-01-01T00:00:00.000Z  2026-01-14T00:00:00.000Z  10d
+30000000000000008  Sprint 2  2026-01-15T00:00:00.000Z  2026-01-28T00:00:00.000Z  10d
+```
+
+With a default project saved:
 
 ```console
 $ zsp sprints
-ID                 NAME      START                     END                       DURATION
-30000000000000003  Sprint 1  2026-01-01T00:00:00.000Z  2026-01-14T00:00:00.000Z  10d
 ```
 
-Dates are UTC. A portal in IST stores midnight local as `18:30Z` the
-previous day, so a sprint starting "1 January" reads as `2025-12-31T18:30Z`.
+> Dates are UTC. A portal set to IST stores local midnight as `18:30Z` the
+> previous day, so a sprint starting 1 January reads `2025-12-31T18:30Z`.
+> The web UI shows it correctly.
 
-### `zsp items [--project ID] [--sprint ID] [--mine NAME]`
+### `zsp items`
+
+```console
+$ zsp items --project 20000000000000002 --sprint 30000000000000003
+ID                 TITLE                             STATUS       ASSIGNEE                 POINTS
+40000000000000004  Fix login redirect loop           In progress  Ada Lovelace             5
+40000000000000009  Cache title-pair scores in Redis  Done         Ada Lovelace             3
+40000000000000012  Migrate parser to RabbitMQ        To do        Ada Lovelace,Grace Hop…  8
+```
+
+Only your own items:
 
 ```console
 $ zsp items --mine ada
-ID                 TITLE                    STATUS       ASSIGNEE      POINTS
-40000000000000004  Fix login redirect loop  In progress  Ada Lovelace  5
+ID                 TITLE                             STATUS       ASSIGNEE      POINTS
+40000000000000004  Fix login redirect loop           In progress  Ada Lovelace  5
+40000000000000009  Cache title-pair scores in Redis  Done         Ada Lovelace  3
 ```
 
 `--mine` matches a case-insensitive substring of the display name and
-filters server-side, so it sees every page — not just the first.
+filters **server-side**, so it sees every page, not just the first.
 
-Items with several assignees show them comma-separated.
+```bash
+# Everything not finished
+zsp items --json | jq -r '.[] | select(.status != "Done") | .title'
 
-### `zsp item ID [--project ID] [--sprint ID]`
+# Point total for the sprint
+zsp items --json | jq '[.[].points] | add'
+```
 
-Raw detail for one item. Most useful with `--json`.
+### `zsp item`
 
-### `zsp standup [--project ID] [--days N]`
+Full detail for one item — the raw Zoho payload, so `--json` is usually
+what you want.
 
-Time logs in the window, newest data as recorded by Zoho.
+```console
+$ zsp item 40000000000000004 --project 20000000000000002 --sprint 30000000000000003
+item_prop: {'itemName': 0, 'itemNo': 2, 'createdBy': 3, ...}
+itemIds: ['40000000000000004']
+userDisplayName: {'50000000000000005': 'Ada Lovelace'}
+itemJObj: {'40000000000000004': ['Fix login redirect loop', ...]}
+status: success
+```
+
+```bash
+# Pull one field out
+zsp item 40000000000000004 --json | jq '.itemJObj[][0]'
+```
+
+### `zsp standup`
+
+Time logged in the window. Defaults to the last day.
 
 ```console
 $ zsp standup --days 7
-ID                 DATE                      ITEM       OWNER         HOURS  NOTES
-11000000000000001  2026-01-05T00:00:00.000Z  Fix login  Ada Lovelace  8.0    traced the redirect
+ID                 DATE                      ITEM                     OWNER         HOURS  NOTES
+11000000000000001  2026-01-05T00:00:00.000Z  Fix login redirect loop  Ada Lovelace  8.0    traced the redirect
+11000000000000004  2026-01-06T00:00:00.000Z  Cache title-pair scores  Ada Lovelace  6.5    moved cache to Redis
 ```
 
-HTML is stripped from notes and truncated to 80 characters. Use `--json`
-for the full text.
+Notes are HTML-stripped and truncated to 80 characters; `--json` has the
+full text.
 
-### `zsp comments ITEM_ID`
+```bash
+# Hours this week
+zsp standup --days 7 --json | jq '[.[].hours] | add'
+
+# Group by day
+zsp standup --days 30 --json | jq -r 'group_by(.date[:10])[] | "\(.[0].date[:10])  \([.[].hours] | add)h"'
+```
+
+An empty result is normal if nothing was logged in the window — widen it
+with `--days`.
+
+### `zsp comments`
 
 ```console
 $ zsp comments 40000000000000004
 ID                 AUTHOR        CREATED                   TEXT
 60000000000000006  Ada Lovelace  2026-01-06T00:00:00.000Z  Looks good to me
+60000000000000011  Grace Hopper  2026-01-06T09:15:00.000Z  Deployed to staging
 ```
+
+Note the ids — you need one to delete a comment with
+[`zsp uncomment`](#zsp-uncomment).
 
 ---
 
 ## Writing
 
-All of these hit the API immediately. Add `--dry-run` to see the request
-first.
+These hit the API immediately. Add `--dry-run` to any of them to see the
+request without sending it.
 
-### `zsp create --title TEXT [...]`
+### `zsp create`
 
 | Flag | Meaning |
 |---|---|
-| `--title` | Required |
+| `--title` | **Required** |
+| `--type` | `Story`, `Task`, `Bug` … (project-specific) |
 | `--parent ITEM_ID` | Create as a subtask of that item |
 | `--desc` | Description |
-| `--assignee NAME` | Resolved against project members |
-| `--type TYPE` | `Story`, `Task`, `Bug` … (project-specific) |
+| `--assignee NAME` | Matched against project members |
 | `--priority` | `None`, `Low`, `Medium`, `High` |
 | `--points N` | Story points |
 | `--start`, `--end` | `YYYY-MM-DD` |
 
+Minimal:
+
 ```console
-$ zsp create --title "Cache title-pair scores" --type Task \
-             --assignee ada --priority High --points 3 \
-             --start 2026-01-05 --end 2026-01-09
+$ zsp create --title "Rework title scoring" --type Story
 Created: success
 ```
 
-New items start in the project's default status, usually `To do`.
+Everything:
 
-### `zsp update ITEM_ID [...]`
+```console
+$ zsp create \
+    --title "Rework title scoring" \
+    --type Story \
+    --desc "Replace classify-then-map with direct recruiter-perspective scoring" \
+    --assignee ada \
+    --priority High \
+    --points 8 \
+    --start 2026-01-05 \
+    --end 2026-01-09
+Created: success
+```
 
-Same field flags as `create`, minus `--parent`/`--type`, plus `--status`.
-At least one is required.
+A subtask under that story:
+
+```console
+$ zsp create --title "Extract attribute stage" --type Task \
+             --parent 40000000000000004 --assignee ada --points 3
+Created: success
+```
+
+Preview before committing to it:
+
+```console
+$ zsp create --title "Rework title scoring" --type Story --dry-run
+DRY RUN — would send:
+  POST https://sprintsapi.zoho.in/zsapi/team/10000000000000001/projects/20000000000000002/sprints/30000000000000003/item/?name=Rework+title+scoring&projitemtypeid=80000000000000001
+    name = Rework title scoring
+    projitemtypeid = 80000000000000001
+```
+
+New items land in the project's default status, usually `To do`.
+
+```bash
+# Capture the new item's id
+NEW=$(zsp create --title "Spike: caching" --type Task --json | jq -r '.addedItemId')
+```
+
+### `zsp update`
+
+Same field flags as `create` (minus `--parent` and `--type`), plus
+`--status`. At least one is required.
 
 ```console
 $ zsp update 40000000000000004 --status "In progress"
 Updated 40000000000000004: success
 ```
 
-Clear a description by passing an empty string:
-
-```bash
-zsp update 40000000000000004 --desc ""
+```console
+$ zsp update 40000000000000004 --assignee grace --points 13 --end 2026-01-12
+Updated 40000000000000004: success
 ```
 
-### `zsp log ITEM_ID --duration H:MM [...]`
-
-| Flag | Meaning |
-|---|---|
-| `--duration` | Required, e.g. `8:00` |
-| `--date` | `YYYY-MM-DD`, defaults to today |
-| `--notes` | Free text |
-| `--user NAME` | Log on someone else's behalf, if permitted |
-| `--billable` | Mark billable (default: not) |
+Clear a field by passing an empty string:
 
 ```console
-$ zsp log 40000000000000004 --duration 3:30 --date 2026-01-05 --notes "traced it"
-Logged on 40000000000000004: success
+$ zsp update 40000000000000004 --desc ""
+Updated 40000000000000004: success
 ```
 
-### `zsp comment ITEM_ID --text TEXT`
+Unknown names fail before anything is sent, listing the valid options:
 
 ```console
-$ zsp comment 40000000000000004 --text "Deployed to staging"
-Commented on 40000000000000004: success
+$ zsp update 40000000000000004 --status Finished
+error: Unknown status 'Finished'. Valid: Done, In progress, To do
 ```
 
-### `zsp uncomment ITEM_ID NOTE_ID`
-
-Get the note id from `zsp comments`. Comments are deletable even where
-items are not.
-
-### `zsp rm ITEM_ID`
-
-Deletes an item. Frequently refused by project role rather than scope — see
-[troubleshooting.md](troubleshooting.md).
-
----
-
-## Scripting
-
 ```bash
-# Total hours this week
-zsp standup --days 7 --json | jq '[.[].hours] | add'
-
-# Everything not yet done
-zsp items --json | jq -r '.[] | select(.status != "Done") | "\(.id)\t\(.title)"'
-
-# Close every item you own that is in review
+# Close everything of yours that is in review
 zsp items --mine ada --json \
   | jq -r '.[] | select(.status == "In review") | .id' \
   | xargs -I{} zsp update {} --status Done
 ```
 
-Build pipelines like the last one with `--dry-run` appended first.
+Build pipelines like that with `--dry-run` on the end first.
+
+### `zsp log`
+
+| Flag | Meaning |
+|---|---|
+| `--duration` | **Required**, `H:MM` — e.g. `8:00` |
+| `--date` | `YYYY-MM-DD`, defaults to today |
+| `--notes` | Free text |
+| `--user NAME` | Log for someone else, if your role permits |
+| `--billable` | Mark billable (default: not billable) |
+
+```console
+$ zsp log 40000000000000004 --duration 3:30
+Logged on 40000000000000004: success
+```
+
+```console
+$ zsp log 40000000000000004 --duration 8:00 --date 2026-01-05 \
+          --notes "traced the redirect loop" --billable
+Logged on 40000000000000004: success
+```
+
+```console
+$ zsp log 40000000000000004 --duration 1:00 --dry-run
+DRY RUN — would send:
+  POST https://sprintsapi.zoho.in/zsapi/team/.../item/40000000000000004/timesheet/?action=additemlog&duration=1%3A00&isbillable=0
+    action = additemlog
+    duration = 1:00
+    isbillable = 0
+```
+
+### `zsp comment`
+
+```console
+$ zsp comment 40000000000000004 --text "Deployed to staging, watching error rates"
+Commented on 40000000000000004: success
+```
+
+Multi-line works — quote it:
+
+```console
+$ zsp comment 40000000000000004 --text "Root cause: the session cookie was
+being set before the redirect. Fixed in #421."
+Commented on 40000000000000004: success
+```
+
+### `zsp uncomment`
+
+Deletes a comment. Get the note id from [`zsp comments`](#zsp-comments).
+
+```console
+$ zsp comments 40000000000000004
+ID                 AUTHOR        CREATED                   TEXT
+60000000000000006  Ada Lovelace  2026-01-06T00:00:00.000Z  Looks good to me
+
+$ zsp uncomment 40000000000000004 60000000000000006
+Deleted comment 60000000000000006: success
+```
+
+Comments are usually deletable even in projects where items are not.
+
+### `zsp rm`
+
+Deletes an item.
+
+```console
+$ zsp rm 40000000000000004
+Deleted 40000000000000004: success
+```
+
+```console
+$ zsp rm 40000000000000004 --dry-run
+DRY RUN — would send:
+  DELETE https://sprintsapi.zoho.in/zsapi/team/.../item/40000000000000004/
+```
+
+> **Frequently refused by role, not scope.** Even with `items.DELETE`
+> granted, Zoho enforces your project role, and it commonly blocks deleting
+> items *you created yourself*:
+>
+> ```console
+> $ zsp rm 40000000000000004
+> error: API error 401: {"code":7401.14,"message":"Doesn't have permission in item."}
+> ```
+>
+> No scope change fixes that — see
+> [troubleshooting.md](troubleshooting.md#permissions). Worth testing before
+> you generate data somewhere you cannot clean up.
+
+---
+
+## Recipes
+
+```bash
+# Daily standup, ready to paste
+zsp standup --days 1 --json \
+  | jq -r '.[] | "- \(.item) (\(.hours)h): \(.notes)"'
+
+# Sprint burndown input
+zsp items --json | jq -r 'group_by(.status)[] | "\(.[0].status): \([.[].points] | add)"'
+
+# Log the same hours across several items
+for id in 4000...004 4000...009; do
+  zsp log "$id" --duration 2:00 --notes "pairing session"
+done
+
+# Create a story with its subtasks
+STORY=$(zsp create --title "Auth rework" --type Story --json | jq -r .addedItemId)
+for t in "Design" "Backend" "Frontend" "QA"; do
+  zsp create --title "$t" --type Task --parent "$STORY" --assignee ada
+done
+```
 
 ## Exit codes
 
@@ -222,3 +481,12 @@ Build pipelines like the last one with `--dry-run` appended first.
 | 4 | API error — Zoho returned a failure |
 | 5 | Lookup failed — a name could not be resolved |
 | 130 | Interrupted |
+
+```bash
+if ! zsp items --json > items.json 2>err.log; then
+  case $? in
+    3) echo "run: zsp login" ;;
+    4) echo "Zoho error:"; cat err.log ;;
+  esac
+fi
+```
