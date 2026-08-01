@@ -2,7 +2,7 @@
 
 import json
 
-from ..api.parsing import ZohoDate
+from ..api.parsing import Html, ZohoDate
 from ..core.errors import UsageError
 from .base import BaseService
 
@@ -119,8 +119,10 @@ class ItemService(BaseService):
             params["name"] = title
         # `is not None`, not truthiness: an empty string is how a
         # description gets cleared, and a falsy check would drop it.
+        # The field holds HTML, so plain text is converted — otherwise
+        # newlines and bullets collapse into one run-on paragraph.
         if description is not None:
-            params["description"] = description
+            params["description"] = Html.from_text(description)
         if points is not None:
             params["point"] = points
         if start:

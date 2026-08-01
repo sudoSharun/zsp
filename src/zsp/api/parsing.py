@@ -40,14 +40,98 @@ class ZohoDate:
 
 
 class Html:
-    """Zoho stores comments and log notes as HTML fragments."""
+    """Zoho stores comments, descriptions and log notes as HTML fragments.
+
+    Both directions matter. Reading, the markup has to come off. Writing,
+    plain text has to go *in* as HTML — send raw newlines and Zoho renders
+    the whole thing as one run-on paragraph, because that is what HTML does
+    with whitespace.
+    """
 
     TAG = re.compile("<[^>]+>")
 
+    #: A line that is a bullet: "- x", "* x" or "• x".
+    BULLET = re.compile(r"^\s*[-*•]\s+(.*)$")
+    #: A line that is numbered: "1. x" or "1) x".
+    NUMBERED = re.compile(r"^\s*\d+[.)]\s+(.*)$")
+    #: Enough to tell that the caller already sent markup.
+    LOOKS_LIKE_HTML = re.compile(r"<(div|p|br|ul|ol|li|span|strong|em|b|i)\b[^>]*>",
+                                 re.IGNORECASE)
+
+    #: Tags that end a line of prose. Without turning these into spaces,
+    #: "<div>one</div><div>two</div>" strips to "onetwo".
+    BLOCK_END = re.compile(r"</?(br|div|p|li|ul|ol|tr|h[1-6])\b[^>]*>",
+                           re.IGNORECASE)
+
     @classmethod
     def to_text(cls, text, limit=None):
-        clean = cls.TAG.sub("", text or "").strip()
+        """Strip markup for terminal display, keeping words separated."""
+        spaced = cls.BLOCK_END.sub(" ", text or "")
+        clean = re.sub(r"\s+", " ", cls.TAG.sub("", spaced)).strip()
         return clean[:limit] if limit else clean
+
+    @classmethod
+    def from_text(cls, text):
+        """Convert plain text — with markdown-style lists — to HTML.
+
+        Blank lines separate blocks, single newlines become ``<br>``, and
+        runs of ``-``/``*``/``•`` or ``1.`` lines become real lists.
+
+        An empty string is returned untouched, because that is how a
+        description gets cleared. Text that already contains markup is
+        passed through, so callers can hand-write HTML if they want to.
+        """
+        if not text or cls.LOOKS_LIKE_HTML.search(text):
+            return text
+
+        blocks = re.split(r"\n\s*\n", text.replace("\r\n", "\n"))
+        return "".join(cls._block(b) for b in blocks if b.strip())
+
+    @classmethod
+    def _block(cls, block):
+        rendered = []
+        pending = []          # consecutive plain lines
+        items = []            # consecutive list items
+        tag = None            # "ul" or "ol" for the run being collected
+
+        def flush_text():
+            if pending:
+                rendered.append("<div>" + "<br>".join(pending) + "</div>")
+                pending.clear()
+
+        def flush_list():
+            nonlocal tag
+            if items:
+                cells = "".join(f"<li>{i}</li>" for i in items)
+                rendered.append(f"<{tag}>{cells}</{tag}>")
+                items.clear()
+            tag = None
+
+        for line in block.split("\n"):
+            bullet = cls.BULLET.match(line)
+            numbered = cls.NUMBERED.match(line)
+
+            if bullet or numbered:
+                wanted = "ul" if bullet else "ol"
+                if tag and tag != wanted:
+                    flush_list()
+                flush_text()
+                tag = wanted
+                items.append(cls.escape((bullet or numbered).group(1).strip()))
+            elif line.strip():
+                flush_list()
+                pending.append(cls.escape(line.strip()))
+
+        flush_list()
+        flush_text()
+        return "".join(rendered)
+
+    @staticmethod
+    def escape(text):
+        """Escape the three characters that would otherwise become markup."""
+        return (text.replace("&", "&amp;")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;"))
 
 
 class Response:

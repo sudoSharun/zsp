@@ -74,7 +74,7 @@ class TimesheetService(BaseService):
         if date:
             params["date"] = ZohoDate.normalise(date)
         if notes:
-            params["notes"] = notes
+            params["notes"] = Html.from_text(notes)
         if user:
             params["users"] = self.lookups.user_id(project, user)
 

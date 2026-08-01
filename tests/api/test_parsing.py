@@ -84,7 +84,7 @@ class TestZohoDate:
         assert ZohoDate.normalise("tomorrow") == "tomorrow"
 
 
-class TestHtml:
+class TestHtmlToText:
     def test_removes_tags(self):
         assert Html.to_text("<div><span>hi</span></div>") == "hi"
 
@@ -93,3 +93,79 @@ class TestHtml:
 
     def test_handles_none(self):
         assert Html.to_text(None) == ""
+
+
+class TestHtmlFromText:
+    """Comments and descriptions are HTML fields.
+
+    Sending raw newlines makes Zoho render everything as one run-on
+    paragraph — bullets and line breaks silently vanish.
+    """
+
+    def test_bullets_become_a_real_list(self):
+        html = Html.from_text("- first\n- second")
+        assert html == "<ul><li>first</li><li>second</li></ul>"
+
+    def test_asterisk_bullets_work_too(self):
+        assert "<ul><li>first</li>" in Html.from_text("* first\n* second")
+
+    def test_numbered_lines_become_an_ordered_list(self):
+        html = Html.from_text("1. first\n2. second")
+        assert html == "<ol><li>first</li><li>second</li></ol>"
+
+    def test_single_newlines_become_breaks(self):
+        assert Html.from_text("one\ntwo") == "<div>one<br>two</div>"
+
+    def test_blank_lines_separate_blocks(self):
+        assert Html.from_text("one\n\ntwo") == "<div>one</div><div>two</div>"
+
+    def test_intro_line_then_bullets(self):
+        """The shape that actually broke: a lead-in followed by a list."""
+        html = Html.from_text("Done so far:\n- ladder added\n- multiplier dropped")
+        assert html == ("<div>Done so far:</div>"
+                        "<ul><li>ladder added</li><li>multiplier dropped</li></ul>")
+
+    def test_list_then_trailing_paragraph(self):
+        html = Html.from_text("- one\n- two\nStill verifying.")
+        assert html == ("<ul><li>one</li><li>two</li></ul>"
+                        "<div>Still verifying.</div>")
+
+    def test_switching_list_type_starts_a_new_list(self):
+        html = Html.from_text("- bullet\n1. numbered")
+        assert html == "<ul><li>bullet</li></ul><ol><li>numbered</li></ol>"
+
+    def test_special_characters_are_escaped(self):
+        """Stray angle brackets must not become markup."""
+        assert Html.from_text("a < b & c > d") == "<div>a &lt; b &amp; c &gt; d</div>"
+
+    def test_escaping_applies_inside_list_items(self):
+        assert Html.from_text("- a & b") == "<ul><li>a &amp; b</li></ul>"
+
+    def test_text_that_contains_real_tags_is_treated_as_markup(self):
+        """Documented trade-off of the pass-through above.
+
+        Someone writing a literal "<b>" in prose gets it rendered rather
+        than escaped. Rare enough to accept, and it is what makes
+        hand-written HTML possible.
+        """
+        assert Html.from_text("<b>bold</b>") == "<b>bold</b>"
+
+    def test_empty_string_passes_through(self):
+        """An empty description is how the field gets cleared."""
+        assert Html.from_text("") == ""
+
+    def test_none_passes_through(self):
+        assert Html.from_text(None) is None
+
+    def test_existing_html_is_left_alone(self):
+        """Callers who hand-write markup keep control of it."""
+        markup = "<div>already <strong>done</strong></div>"
+        assert Html.from_text(markup) == markup
+
+    def test_round_trips_back_to_readable_text(self):
+        original = "Done so far:\n- ladder added\n- multiplier dropped"
+        assert Html.to_text(Html.from_text(original)) == (
+            "Done so far: ladder added multiplier dropped")
+
+    def test_indented_bullets_are_recognised(self):
+        assert Html.from_text("  - indented") == "<ul><li>indented</li></ul>"

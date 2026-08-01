@@ -39,10 +39,15 @@ class CommentService(BaseService):
         return rows
 
     def add(self, item_id, text, project=None, sprint=None, dry_run=False):
+        """Add a comment.
+
+        The field holds HTML, so plain text is converted first — otherwise
+        newlines and ``-`` bullets collapse into one run-on paragraph.
+        """
         _, project, sprint = self.scope(project, sprint)
         return self.client.post(
             self.item_path(project, sprint, item_id, "notes"),
-            dry_run=dry_run, name=text)
+            dry_run=dry_run, name=Html.from_text(text))
 
     def delete(self, item_id, note_id, project=None, sprint=None, dry_run=False):
         """Delete a comment.

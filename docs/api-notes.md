@@ -112,7 +112,29 @@ Notes:
 - Comments are deletable even in projects where the role forbids deleting
   the items themselves.
 
-## 7. Dates must carry a time and offset
+## 7. Comments and descriptions are HTML fields
+
+Item descriptions, comments and time-log notes all store **HTML**, not
+plain text. Send raw newlines and Zoho renders the whole thing as one
+run-on paragraph — line breaks and `-` bullets disappear, because that is
+what HTML does with whitespace.
+
+Convert before sending:
+
+```
+Done so far:            →  <div>Done so far:</div>
+- ladder added             <ul><li>ladder added</li>
+- multiplier dropped           <li>multiplier dropped</li></ul>
+```
+
+Reading back, strip the tags — but turn block-level tags into whitespace
+first, or `<div>one</div><div>two</div>` becomes `onetwo`.
+
+Zoho's own UI writes fragments like
+`<div><span style="...">text</span><br/></div>`, so a plain `<div>`/`<ul>`
+subset renders correctly.
+
+## 8. Dates must carry a time and offset
 
 ```
 ?startdate=2026-01-05
@@ -124,7 +146,7 @@ timezone regardless of the offset you sent, so an IST portal stores
 `2026-01-04T18:30:00Z` for 5 January. Reading dates back as UTC makes them
 look a day early; that is correct behaviour, not drift.
 
-## 8. `isbillable` is mandatory on time logs
+## 9. `isbillable` is mandatory on time logs
 
 ```
 POST .../item/{i}/timesheet/?action=additemlog&duration=8:00
@@ -138,7 +160,7 @@ POST .../item/{i}/timesheet/?action=additemlog&duration=8:00
 DELETE /team/{t}/projects/{p}/timesheet/?action=deletelogs&logidarr=["<id>",...]
 ```
 
-## 9. Scopes vs roles are different failures
+## 10. Scopes vs roles are different failures
 
 | Response | Meaning | Fix |
 |---|---|---|
@@ -151,7 +173,7 @@ Check before generating test data somewhere you cannot clean up.
 Error payloads sometimes leak useful internals — a failed item delete
 returns `"module": 3`, Zoho's internal module id for items.
 
-## 10. Token refresh is rate-limited separately
+## 11. Token refresh is rate-limited separately
 
 The `refresh_token` grant is throttled far more aggressively than the
 30/min data API. Refreshing once per process trips

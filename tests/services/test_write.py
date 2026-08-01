@@ -135,7 +135,18 @@ class TestComments:
         assert f"/sprints/{SPRINT}/item/{ITEM}/notes/" in url
         assert "/modules/" not in url
         assert "addnotes" not in url
-        assert opener.query()["name"] == "looks good"
+        # The field is HTML, so plain text is wrapped before sending.
+        assert opener.query()["name"] == "<div>looks good</div>"
+
+    def test_comment_bullets_survive_as_a_list(self, services, opener):
+        """Raw newlines render as one run-on paragraph in Zoho."""
+        services["comments"].add(
+            ITEM, "Done so far:\n- ladder added\n- multiplier dropped",
+            PROJECT, SPRINT)
+
+        assert opener.query()["name"] == (
+            "<div>Done so far:</div>"
+            "<ul><li>ladder added</li><li>multiplier dropped</li></ul>")
 
     def test_delete_targets_the_note(self, services, opener):
         services["comments"].delete(ITEM, NOTE, PROJECT, SPRINT)

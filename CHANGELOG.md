@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Comments, descriptions and time-log notes are HTML fields in Zoho, so
+  plain text was rendering as one run-on paragraph with line breaks and
+  bullets stripped. Text is now converted to HTML on write — `-`/`*` lines
+  become `<ul>`, `1.` lines become `<ol>`, blank lines separate blocks —
+  and special characters are escaped. Input that already contains markup
+  is passed through untouched.
+- Stripping HTML on read joined words across block tags, so
+  `<div>one</div><div>two</div>` displayed as `onetwo`.
+
 ## [0.1.0] - 2026-08-01
 
 First release.

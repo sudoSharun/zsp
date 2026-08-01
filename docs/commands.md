@@ -395,6 +395,22 @@ $ zsp comment 40000000000000004 --text "Deployed to staging, watching error rate
 Commented on 40000000000000004: success
 ```
 
+Comments, descriptions and log notes are HTML fields in Zoho, so line
+breaks and `-`/`1.` lists are converted for you — write them as you would
+in a terminal and they render properly:
+
+```console
+$ zsp comment 40000000000000004 --text "Done so far:
+- Seniority ladder with an exact penalty per step
+- Dropped the M_seniority multiplier
+
+Still verifying against real JDs."
+Commented on 40000000000000004: success
+```
+
+Renders as a paragraph, a real bulleted list, then a closing paragraph.
+Pass HTML yourself and it is sent untouched.
+
 Multi-line works — quote it:
 
 ```console
