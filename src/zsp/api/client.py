@@ -69,7 +69,12 @@ class SprintsClient:
         if dry_run:
             self._describe("POST", url, params)
             for attachment in attachments:
-                self._print(f"    file = {attachment.path} ({attachment.content_type})")
+                # Validate even here. A dry run that accepts a mistyped
+                # path is worse than useless — it reports success for a
+                # command that will fail.
+                size = len(attachment.read())
+                self._print(f"    file = {attachment.path} "
+                            f"({attachment.content_type}, {size:,} bytes)")
             return None
 
         body = MultipartBody()

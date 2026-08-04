@@ -112,3 +112,27 @@ class TestMultipartBody:
     def test_invalid_file_raises_before_any_encoding(self, tmp_path):
         with pytest.raises(UsageError):
             MultipartBody().encode({}, [Attachment(str(tmp_path / "gone.txt"))])
+
+
+class TestDryRunValidation:
+    """A dry run that accepts a bad path reports success for a command
+    that will fail — worse than no dry run at all."""
+
+    def test_dry_run_rejects_a_missing_file(self, client, opener):
+        from zsp.core import UsageError
+
+        with pytest.raises(UsageError):
+            client.upload("/p/", [Attachment("/tmp/zsp-does-not-exist.png")],
+                          dry_run=True, action="attachment")
+        assert opener.calls == []
+
+    def test_dry_run_reports_the_size(self, client, sample, capsys):
+        client.upload("/p/", [Attachment(sample)], dry_run=True,
+                      action="attachment")
+        out = capsys.readouterr().out
+        assert "bytes" in out
+        assert "report.pdf" in out
+
+    def test_dry_run_still_sends_nothing(self, client, opener, sample):
+        assert client.upload("/p/", [Attachment(sample)], dry_run=True) is None
+        assert opener.calls == []
