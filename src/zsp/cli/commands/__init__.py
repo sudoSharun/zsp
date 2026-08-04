@@ -16,8 +16,10 @@ from .read import (
 )
 from .session import ConfigCommand, LoginCommand, LogoutCommand, UseCommand
 from .write import (
+    AttachCommand,
     CommentCommand,
     CreateCommand,
+    DetachCommand,
     LogCommand,
     RemoveCommand,
     UncommentCommand,
@@ -45,6 +47,8 @@ COMMANDS = (
     LogCommand,
     CommentCommand,
     UncommentCommand,
+    AttachCommand,
+    DetachCommand,
     RemoveCommand,
 )
 

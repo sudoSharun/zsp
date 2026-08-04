@@ -2,6 +2,7 @@
 
 import json
 
+from ..api import Attachment
 from ..api.parsing import Html, ZohoDate
 from ..core.errors import UsageError
 from .base import BaseService
@@ -64,9 +65,19 @@ class ItemService(BaseService):
 
     def create(self, title, project=None, sprint=None, parent=None, description=None,
                assignee=None, item_type=None, priority=None, points=None,
-               start=None, end=None, dry_run=False):
-        """Create an item, or a subtask when ``parent`` is given."""
+               start=None, end=None, files=None, dry_run=False):
+        """Create an item, or a subtask when ``parent`` is given.
+
+        ``files`` are uploaded afterwards: the API has no way to create an
+        item and attach in one request, since the id does not exist yet.
+        They are validated *before* the item is created, so a bad path does
+        not leave an item behind with nothing attached.
+        """
         _, project, sprint = self.scope(project, sprint)
+        attachments = [Attachment(path) for path in files or ()]
+        for attachment in attachments:
+            attachment.read()
+
         params = self._payload(project, title=title, description=description,
                                points=points, start=start, end=end,
                                item_type=item_type, priority=priority)
@@ -77,7 +88,11 @@ class ItemService(BaseService):
         # shares this method rather than duplicating every lookup.
         path = (self.item_path(project, sprint, parent, "subitem") if parent
                 else self.sprint_path(project, sprint, "item"))
-        return self.client.post(path, dry_run=dry_run, **params)
+        created = self.client.post(path, dry_run=dry_run, **params)
+
+        if attachments and created and created.get("addedItemId"):
+            self.attach(created["addedItemId"], files, project, sprint)
+        return created
 
     def update(self, item_id, project=None, sprint=None, title=None, description=None,
                status=None, assignee=None, points=None, start=None, end=None,
@@ -109,6 +124,27 @@ class ItemService(BaseService):
         _, project, sprint = self.scope(project, sprint)
         return self.client.delete(
             self.item_path(project, sprint, item_id), dry_run=dry_run)
+
+    # -- attachments -----------------------------------------------------
+
+    def attach(self, item_id, paths, project=None, sprint=None, dry_run=False):
+        """Upload one or more files to an item.
+
+        The only multipart endpoint in the API — note the path is *plural*
+        (``/attachments/``) while deletion below is singular.
+        """
+        _, project, sprint = self.scope(project, sprint)
+        attachments = [Attachment(path) for path in paths]
+        return self.client.upload(
+            self.item_path(project, sprint, item_id, "attachments"),
+            attachments, dry_run=dry_run, action="attachment")
+
+    def detach(self, item_id, resource_id, project=None, sprint=None, dry_run=False):
+        """Remove an attachment by its ``docResourceId``."""
+        _, project, sprint = self.scope(project, sprint)
+        return self.client.delete(
+            self.item_path(project, sprint, item_id, "attachment"),
+            dry_run=dry_run, docResourceId=resource_id)
 
     # -- payload ---------------------------------------------------------
 

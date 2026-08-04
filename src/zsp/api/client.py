@@ -13,6 +13,7 @@ import urllib.parse
 import urllib.request
 
 from ..core.errors import ApiError
+from .multipart import MultipartBody
 from .parsing import Response
 
 
@@ -57,6 +58,24 @@ class SprintsClient:
         """DELETE an endpoint, or print the request when ``dry_run``."""
         return self._write(path, "DELETE", dry_run, params)
 
+    def upload(self, path, attachments, dry_run=False, **params):
+        """POST files as ``multipart/form-data``.
+
+        The only endpoint that takes a real body — everything else is query
+        parameters. Files are read and validated before the request is
+        built, so a bad path fails without a partial upload.
+        """
+        url = self.build_url(path, params)
+        if dry_run:
+            self._describe("POST", url, params)
+            for attachment in attachments:
+                self._print(f"    file = {attachment.path} ({attachment.content_type})")
+            return None
+
+        body = MultipartBody()
+        return self._send(url, "POST", body=body.encode(params, attachments),
+                          content_type=body.content_type)
+
     def _write(self, path, method, dry_run, params):
         url = self.build_url(path, params)
         if dry_run:
@@ -72,12 +91,13 @@ class SprintsClient:
         for key, value in params.items():
             self._print(f"    {key} = {value}")
 
-    def _send(self, url, method, body=None):
+    def _send(self, url, method, body=None, content_type=None):
         token = self.authenticator.access_token(self.config)
+        headers = {"Authorization": f"Zoho-oauthtoken {token}"}
+        if content_type:
+            headers["Content-Type"] = content_type
         request = urllib.request.Request(
-            url, data=body, method=method,
-            headers={"Authorization": f"Zoho-oauthtoken {token}"},
-        )
+            url, data=body, method=method, headers=headers)
         try:
             with self._opener(request) as response:
                 return json.loads(response.read())

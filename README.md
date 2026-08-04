@@ -119,6 +119,8 @@ zsp standup --days 7
 | `zsp log ID --duration H:MM` | Log time |
 | `zsp comment ID --text T` | Add a comment |
 | `zsp uncomment ID NOTE_ID` | Delete a comment |
+| `zsp attach ID FILE...` | Upload files to an item |
+| `zsp detach ID RESOURCE_ID` | Remove an attachment |
 | `zsp rm ID` | Delete an item |
 
 Every command takes `--json`. Every write takes `--dry-run`.

@@ -26,12 +26,14 @@ class CreateCommand(Command):
         parser.add_argument("--points", type=int)
         parser.add_argument("--start", metavar="YYYY-MM-DD")
         parser.add_argument("--end", metavar="YYYY-MM-DD")
+        parser.add_argument("--attach", nargs="+", metavar="FILE", dest="files",
+                            help="upload files to the item once created")
 
     def execute(self, args):
         response = self.app.items.create(
             args.title, args.project, args.sprint, args.parent, args.desc,
             args.assignee, args.item_type, args.priority, args.points,
-            args.start, args.end, args.dry_run)
+            args.start, args.end, args.files, args.dry_run)
         self.report(response, "Created")
 
 
@@ -116,6 +118,42 @@ class UncommentCommand(Command):
         response = self.app.comments.delete(
             args.item_id, args.note_id, args.project, args.sprint, args.dry_run)
         self.report(response, f"Deleted comment {args.note_id}")
+
+
+class AttachCommand(Command):
+    name = "attach"
+    help = "upload files to an item"
+    scoped = True
+    writes = True
+
+    @classmethod
+    def add_arguments(cls, parser):
+        parser.add_argument("item_id")
+        parser.add_argument("files", nargs="+", metavar="FILE",
+                            help="one or more paths to upload")
+
+    def execute(self, args):
+        response = self.app.items.attach(
+            args.item_id, args.files, args.project, args.sprint, args.dry_run)
+        self.report(response, f"Attached {len(args.files)} file(s) to {args.item_id}")
+
+
+class DetachCommand(Command):
+    name = "detach"
+    help = "remove an attachment from an item"
+    scoped = True
+    writes = True
+
+    @classmethod
+    def add_arguments(cls, parser):
+        parser.add_argument("item_id")
+        parser.add_argument("resource_id", metavar="DOC_RESOURCE_ID",
+                            help="docResourceId of the attachment")
+
+    def execute(self, args):
+        response = self.app.items.detach(
+            args.item_id, args.resource_id, args.project, args.sprint, args.dry_run)
+        self.report(response, f"Detached {args.resource_id}")
 
 
 class RemoveCommand(Command):

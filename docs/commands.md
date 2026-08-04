@@ -28,6 +28,8 @@ All ids below are fabricated. Yours will be 19-digit numbers from
 [log](#zsp-log) ·
 [comment](#zsp-comment) ·
 [uncomment](#zsp-uncomment) ·
+[attach](#zsp-attach) ·
+[detach](#zsp-detach) ·
 [rm](#zsp-rm)
 
 ---
@@ -460,6 +462,53 @@ Deleted comment 60000000000000006: success
 ```
 
 Comments are usually deletable even in projects where items are not.
+
+### `zsp attach`
+
+Upload files to an item. The only multipart endpoint in the API.
+
+```console
+$ zsp attach 40000000000000004 screenshot.png
+Attached 1 file(s) to 40000000000000004: success
+```
+
+Several at once:
+
+```console
+$ zsp attach 40000000000000004 error.log trace.txt design.pdf
+Attached 3 file(s) to 40000000000000004: success
+```
+
+Files are validated locally first — missing path, directory, empty file or
+over the 100 MB cap fail before anything is sent, so a typo in a
+multi-file upload does not leave a half-finished mess.
+
+Attach at creation time with `--attach`:
+
+```console
+$ zsp create --title "Login fails on Safari" --type Bug \
+             --attach har-file.har screenshot.png
+Created: success
+```
+
+The item is created first, then the files uploaded — the API cannot do
+both in one request, since the item id does not exist yet. The files are
+still validated up front, so a bad path will not leave an empty item
+behind.
+
+### `zsp detach`
+
+Remove an attachment by its `docResourceId`.
+
+```console
+$ zsp detach 40000000000000004 99000000000000001
+Detached 99000000000000001: success
+```
+
+> **Finding the id is awkward.** Zoho documents no endpoint that lists an
+> item's attachments, so there is no `zsp attachments` command. Get the
+> `docResourceId` from the attachment's URL in the web UI, or from the
+> response when you uploaded it.
 
 ### `zsp rm`
 

@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- `zsp attach ITEM FILE...` uploads files to an item, and
+  `zsp detach ITEM DOC_RESOURCE_ID` removes one. `zsp create --attach`
+  attaches at creation time. Files are validated locally first — missing,
+  empty, oversized or unreadable paths fail before anything is sent.
 - `zsp statuses` lists every status configured on a project, including
   board columns with no items in them.
 

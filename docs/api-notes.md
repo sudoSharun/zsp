@@ -134,7 +134,35 @@ Zoho's own UI writes fragments like
 `<div><span style="...">text</span><br/></div>`, so a plain `<div>`/`<ul>`
 subset renders correctly.
 
-## 8. Dates must carry a time and offset
+## 8. Attachments are the one multipart endpoint
+
+Everything else is query parameters with an empty body. File upload is not:
+
+```
+POST /team/{t}/projects/{p}/sprints/{s}/item/{i}/attachments/
+     Content-Type: multipart/form-data; boundary=...
+       action=attachment      (text, mandatory)
+       uploadfile=<file>      (file, mandatory)
+```
+
+Note the path is **plural** for adding and **singular** for removing:
+
+```
+DELETE /team/{t}/projects/{p}/sprints/{s}/item/{i}/attachment/?docResourceId=<id>
+```
+
+There is **no documented endpoint that lists an item's attachments**, so
+obtaining a `docResourceId` in order to delete one means reading it from
+the web UI or from the upload response. The item payload exposes only an
+`isDocsAdded` boolean.
+
+Creating an item with attachments takes two requests — the id does not
+exist until the item is created.
+
+Comments carry a `hasAttach` field, but no endpoint is documented for
+attaching to a comment specifically.
+
+## 9. Dates must carry a time and offset
 
 ```
 ?startdate=2026-01-05
@@ -146,7 +174,7 @@ timezone regardless of the offset you sent, so an IST portal stores
 `2026-01-04T18:30:00Z` for 5 January. Reading dates back as UTC makes them
 look a day early; that is correct behaviour, not drift.
 
-## 9. `isbillable` is mandatory on time logs
+## 10. `isbillable` is mandatory on time logs
 
 ```
 POST .../item/{i}/timesheet/?action=additemlog&duration=8:00
@@ -160,7 +188,7 @@ POST .../item/{i}/timesheet/?action=additemlog&duration=8:00
 DELETE /team/{t}/projects/{p}/timesheet/?action=deletelogs&logidarr=["<id>",...]
 ```
 
-## 10. Scopes vs roles are different failures
+## 11. Scopes vs roles are different failures
 
 | Response | Meaning | Fix |
 |---|---|---|
@@ -173,7 +201,7 @@ Check before generating test data somewhere you cannot clean up.
 Error payloads sometimes leak useful internals — a failed item delete
 returns `"module": 3`, Zoho's internal module id for items.
 
-## 11. Token refresh is rate-limited separately
+## 12. Token refresh is rate-limited separately
 
 The `refresh_token` grant is throttled far more aggressively than the
 30/min data API. Refreshing once per process trips
@@ -220,6 +248,8 @@ list at all and remain unreachable.
 | Delete item | DELETE | `/team/{t}/projects/{p}/sprints/{s}/item/{i}/` |
 | Log time | POST | `/team/{t}/projects/{p}/sprints/{s}/item/{i}/timesheet/?action=additemlog` |
 | Delete logs | DELETE | `/team/{t}/projects/{p}/timesheet/?action=deletelogs` |
+| Attach file | POST | `/team/{t}/projects/{p}/sprints/{s}/item/{i}/attachments/` (multipart) |
+| Remove attachment | DELETE | `/team/{t}/projects/{p}/sprints/{s}/item/{i}/attachment/?docResourceId=` |
 | Comments | GET/POST | `/team/{t}/projects/{p}/sprints/{s}/item/{i}/notes/` |
 | Delete comment | DELETE | `/team/{t}/projects/{p}/sprints/{s}/item/{i}/notes/{n}/` |
 

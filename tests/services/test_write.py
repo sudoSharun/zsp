@@ -180,3 +180,72 @@ class TestDryRunAcrossEveryWrite:
         assert calls[name]() is None
         assert "POST" not in opener.methods
         assert "DELETE" not in opener.methods
+
+
+class TestAttachments:
+    """The only multipart endpoint in the API."""
+
+    @pytest.fixture
+    def sample(self, tmp_path):
+        path = tmp_path / "screenshot.png"
+        path.write_bytes(b"\x89PNG fake")
+        return str(path)
+
+    def test_uploads_to_the_plural_path(self, services, opener, sample):
+        services["items"].attach(ITEM, [sample], PROJECT, SPRINT)
+
+        assert opener.methods == ["POST"]
+        # Add is /attachments/ (plural); delete is /attachment/ (singular).
+        assert f"/item/{ITEM}/attachments/" in opener.urls[-1]
+
+    def test_sends_the_mandatory_action(self, services, opener, sample):
+        services["items"].attach(ITEM, [sample], PROJECT, SPRINT)
+        assert opener.query()["action"] == "attachment"
+
+    def test_a_bad_path_fails_before_the_request(self, services, opener, tmp_path):
+        with pytest.raises(UsageError):
+            services["items"].attach(ITEM, [str(tmp_path / "gone.png")],
+                                     PROJECT, SPRINT)
+        assert opener.calls == []
+
+    def test_detach_uses_the_singular_path_and_resource_id(self, services, opener):
+        services["items"].detach(ITEM, "99000000000000001", PROJECT, SPRINT)
+
+        assert opener.methods == ["DELETE"]
+        assert f"/item/{ITEM}/attachment/" in opener.urls[-1]
+        assert opener.query()["docResourceId"] == "99000000000000001"
+
+    def test_dry_run_uploads_nothing(self, services, opener, sample):
+        assert services["items"].attach(
+            ITEM, [sample], PROJECT, SPRINT, dry_run=True) is None
+        assert opener.calls == []
+
+
+class TestCreateWithAttachments:
+    @pytest.fixture
+    def sample(self, tmp_path):
+        path = tmp_path / "spec.md"
+        path.write_text("# spec")
+        return str(path)
+
+    def test_creates_then_uploads(self, services, opener, sample):
+        opener.payloads.extend([{"addedItemId": ITEM, "status": "success"},
+                                OK])
+        services["items"].create("x", PROJECT, SPRINT, files=[sample])
+
+        assert len(opener.calls) == 2
+        assert "/item/" in opener.urls[0]
+        assert "/attachments/" in opener.urls[1]
+
+    def test_files_are_validated_before_the_item_exists(self, services, opener,
+                                                        tmp_path):
+        """Otherwise a typo leaves an orphan item with nothing attached."""
+        with pytest.raises(UsageError):
+            services["items"].create("x", PROJECT, SPRINT,
+                                     files=[str(tmp_path / "missing.md")])
+        assert opener.calls == []
+
+    def test_no_upload_when_creation_returns_no_id(self, services, opener, sample):
+        opener.payloads.append({"status": "success"})   # no addedItemId
+        services["items"].create("x", PROJECT, SPRINT, files=[sample])
+        assert len(opener.calls) == 1
