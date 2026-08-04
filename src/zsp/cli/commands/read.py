@@ -39,6 +39,16 @@ class StatusesCommand(Command):
 
     name = "statuses"
     help = "list the statuses configured on a project"
+    description = ("Every status configured on the project, including board "
+                   "columns that currently hold no items.")
+    examples = """
+examples:
+  zsp statuses
+  zsp statuses --project 20000000000000002
+
+Use the NAME column with `zsp update <item> --status "<name>"`.
+Do not infer statuses from `zsp items` — that only shows the ones in use.
+"""
     scoped = True
     needs_sprint = False
 
@@ -50,6 +60,16 @@ class StatusesCommand(Command):
 class ItemsCommand(Command):
     name = "items"
     help = "list items in a sprint"
+    description = "Work items in a sprint, optionally filtered to one assignee."
+    examples = """
+examples:
+  zsp items
+  zsp items --mine ada                  # substring of a display name
+  zsp items --json | jq -r '.[] | select(.status != "Done") | .title'
+
+--mine filters server-side, so it sees every page.
+Owner is not the same as who logged time — use `zsp standup` for that.
+"""
     scoped = True
 
     @classmethod
@@ -79,6 +99,16 @@ class ItemCommand(Command):
 class StandupCommand(Command):
     name = "standup"
     help = "recent time logs"
+    description = "Time logged against items, newest window first."
+    examples = """
+examples:
+  zsp standup                 # last 24 hours
+  zsp standup --days 7
+  zsp standup --days 7 --json | jq '[.[].hours] | add'
+
+An empty result usually means nothing was logged in the window; widen it
+with --days before concluding anything is wrong.
+"""
     scoped = True
     needs_sprint = False
 
@@ -95,6 +125,13 @@ class StandupCommand(Command):
 class CommentsCommand(Command):
     name = "comments"
     help = "list comments on an item"
+    description = "Comments on an item, oldest first."
+    examples = """
+examples:
+  zsp comments 40000000000000004
+
+The ID column is the note id needed by `zsp uncomment`.
+"""
     scoped = True
 
     @classmethod

@@ -5,6 +5,8 @@ run itself. Adding a command means writing a class and listing it in
 :data:`zsp.cli.commands.COMMANDS` — never editing a dispatch chain.
 """
 
+import argparse
+
 
 class Command:
     """Base class: name, help text, arguments and an ``execute`` body."""
@@ -13,6 +15,13 @@ class Command:
     name = ""
     #: One-line help shown in ``zsp --help``.
     help = ""
+    #: Longer explanation shown at the top of ``zsp <command> --help``.
+    description = ""
+    #: Worked examples shown at the bottom of ``zsp <command> --help``.
+    #: Agents and newcomers read these before the flag list, so they carry
+    #: the things flags cannot say: which values are ids, which are names,
+    #: and which command discovers them.
+    examples = ""
     #: Adds ``--project`` (and ``--sprint``) plus ``--json``.
     scoped = False
     #: Whether ``--sprint`` is included when :attr:`scoped`.
@@ -30,7 +39,14 @@ class Command:
     @classmethod
     def register(cls, subparsers):
         """Attach this command's parser to ``subparsers``."""
-        parser = subparsers.add_parser(cls.name, help=cls.help)
+        parser = subparsers.add_parser(
+            cls.name,
+            help=cls.help,
+            description=cls.description or cls.help,
+            epilog=cls.examples,
+            # Raw, so example blocks keep their line breaks and indentation.
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+        )
 
         if cls.scoped:
             parser.add_argument("--project",

@@ -7,6 +7,16 @@ from .base import Command
 class LoginCommand(Command):
     name = "login"
     help = "authenticate with Zoho"
+    description = "Authenticate with Zoho and store a refresh token locally."
+    examples = """
+Prompts for a client id and secret from api-console.zoho.<dc>, then opens
+a browser for consent. The redirect URI registered there must be exactly:
+
+  http://localhost:8723/callback
+
+Setup guide:
+https://github.com/sudoSharun/zsp/blob/main/docs/authentication.md
+"""
 
     def execute(self, args):
         client_id = input("Client ID: ").strip()
@@ -30,6 +40,16 @@ class LogoutCommand(Command):
 class UseCommand(Command):
     name = "use"
     help = "save a default project (and sprint)"
+    description = ("Save a default project and sprint so other commands "
+                   "need no ids.")
+    examples = """
+examples:
+  zsp use 20000000000000002 30000000000000003
+  zsp use 20000000000000002              # project only
+
+Both arguments are numeric ids, from `zsp projects` and `zsp sprints`.
+Names are not accepted here.
+"""
 
     @classmethod
     def add_arguments(cls, parser):
